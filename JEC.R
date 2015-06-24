@@ -153,26 +153,6 @@ InverseDemand <- lm(log(price) ~ log(quantity) + cartel + ice  + seas1 + seas2 +
 summary(InverseDemand)
 plot(InverseDemand)
 
-#Trigger Demand Equation 2sls
-ivreg(log(quantity) ~  log(price)  + ice | cartel + ice, data=trigger)
-
-
-#Trigger Probit (there is no good indicators in this model)
-Model.Trigger <- glm(trigger ~ log(quantity) + log(price) + ice + week, data=JEC, family=binomial(link='probit'))
-summary(Model.Trigger)
-probitmfx(trigger ~ log(quantity) + log(price) + ice +week, data=JEC)
-confint(Model.Trigger)
-
-
-TriggerPScalar <- mean(dnorm(predict(Model.Trigger, type = "link")))
-TriggerPScalar
-TriggerPScalar * coef(Model.Trigger)
-
-#Trigger Logit (there are no good indicators in this model)
-Model.TriggerL <- glm(trigger ~ log(quantity) + log(price) + ice + week, data=JEC, family=binomial(link='logit'))
-logitmfx(trigger ~ log(quantity) + log(price) + ice + week, data=JEC) #1% change in price = .0032 increase to probability of trigger
-summary(Model.TriggerL)
-logLik(Model.TriggerL)
 
 # Probit model, Cartel ~ Price Quantity Ice 
 Model4.Probit <- glm(cartel ~ log(quantity) + log(price) + ice , data=JEC, family=binomial(link='probit'))
