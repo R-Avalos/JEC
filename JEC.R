@@ -8,7 +8,6 @@ library(ggplot2)
 library(ggvis)
 library(directlabels)
 library(stargazer)
-library(gtable)
 library(gridExtra)
 library(dplyr)
 
