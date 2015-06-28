@@ -1,5 +1,8 @@
-## Railroad JEC
+### Joint Executive Committee Cartel 1880-1886 ###
+### A review of the JEC cartel's ability to maintain cooperation
+
 rm(list=ls()) #clear workspace
+
 #libraries
 library(mfx)
 library(AER)
@@ -10,15 +13,18 @@ library(stargazer)
 library(gridExtra)
 library(dplyr)
 
-#Load Data
-JEC <- read.dta("JEC.dta") # read .dta file into data frame
-str(JEC)
-cols <- c("cartel", "seas1", "seas2", "seas3", "seas4", "seas5", "seas6", "seas7", "seas8", "seas9", "seas10", "seas11", "seas12", "ice") # select columns to factor
-JEC[,cols] <- data.frame(apply(JEC[cols], 2, as.factor)) # factor columns
-head(JEC$cartel)
-levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice") #provide names to factor levels
-levels(JEC$cartel) <- c("Competition", "Cartel") 
+### Load Data and Map/Arrange
+# Data source, Stock & Watson: http://wps.pearsoned.co.uk/ema_ge_stock_ie_3/193/49605/12699041.cw/content/index.html
 
+JEC <- read.dta("JEC.dta") # read STATA .dta file into data frame
+str(JEC) # quick review of the data
+# factor columns
+cols <- c("cartel", "seas1", "seas2", "seas3", "seas4", "seas5", "seas6", "seas7", "seas8", "seas9", "seas10", "seas11", "seas12", "ice") # select columns to factor
+JEC[,cols] <- data.frame(apply(JEC[cols], 2, as.factor)) #factor
+#provide names to factor levels
+levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
+levels(JEC$cartel) <- c("Competition", "Cartel") 
+#review data
 summary(JEC)
 plot(JEC$quantity, JEC$price)
 plot(JEC$week, JEC$price)
@@ -94,13 +100,12 @@ grid.newpage()
 grid.draw(g)
 
 
-##P rice by cartel ggvis 
-#take data -> put into ggvis -> output scatterplot
+##Price by cartel ggvis 
+# Select data -> put into ggvis -> output scatterplot
 JEC %>% 
         ggvis(~week, ~price) %>% 
                 layer_points(fill = ~factor(cartel)) %>%
                 layer_lines()
-
 
 ##  Models
 #lnQ Grain Ton Shipped= B0+ B1 ln(Price) + B2 Ice[0,1] + Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
@@ -109,7 +114,8 @@ JEC %>%
 Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
 summary(Demand)
 
-plot(Model1.OLS)
+plot(Model1.OLS) # 
+
 stargazer(Model1.OLS, type="html") #html regression output
 stargazer(Demand, Demand.2sls, 
           single.row = TRUE, 
