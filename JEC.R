@@ -28,8 +28,47 @@ levels(JEC$cartel) <- c("Competition", "Cartel")
 summary(JEC)
 plot(JEC$quantity, JEC$price)
 plot(JEC$week, JEC$price)
+hist(JEC$price)
+hist(JEC$quantity)
 
 ## Visualizations
+
+# Scatterplot demonstrating supply demand interaction
+plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
+        geom_point()+
+        theme(panel.border = element_blank(),
+              panel.background = element_blank(),
+              plot.title = element_text(size = 20),
+              axis.title.y = element_text(angle = 0, vjust = 1), 
+              axis.title.x = element_text(hjust = 1), 
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(), 
+              legend.position ="right",
+              axis.line = element_line(color = "light grey")) +
+        xlab("Quantity") +
+        ylab("Price") +
+        ggtitle("JEC Grain Transport")
+plot.dualCasuality #call plot
+
+#Scatter plot with color breakdown by cartel status and opactiy by time
+plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, alpha=week)) +
+        geom_point()+
+        geom_rug(sides = "lb")+
+        theme(panel.border = element_blank(),
+              panel.background = element_blank(),
+              plot.title = element_text(size = 20),
+              axis.title.y = element_text(angle = 0, vjust = 1), 
+              axis.title.x =element_text(hjust = 1), 
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(), 
+              legend.position ="right", 
+              axis.line = element_line(color = "light grey")) +
+        scale_color_manual(values = c("blue", "light grey")) +
+        xlab("Quantity") +
+        ylab("Price") +
+        ggtitle("JEC Grain Transport")
+plot.dualCasuality.2 #call plot
+
 # Price by Week line graph stacked on Quantity by Week bar graph
 # Giants Orange: #FB5B1F
 plot.cartel <- ggplot(JEC, aes(x=week, y=price)) +
@@ -37,28 +76,28 @@ plot.cartel <- ggplot(JEC, aes(x=week, y=price)) +
         geom_dl(aes(label=JEC$cartel, color=JEC$cartel), method="lines2") +
         xlab("") +
         ylab("Price") +
-        scale_size_manual(values=c(1.5, 1),
-                          name="Industry Status",
-                          breaks=c("False", "True"),
-                          labels=c("Competition", "Cartel"),
+        scale_size_manual(values = c(1.5, 1),
+                          name = "Industry Status",
+                          breaks = c("False", "True"),
+                          labels = c("Competition", "Cartel"),
                           guide = guide_legend(reverse=TRUE)
                           ) +
-        scale_color_manual( values=c("#FB5B1F", "grey"), 
-                            name="Industry Status",
-                            breaks=c("False", "True"),
-                            labels=c("Competition", "Cartel"),
+        scale_color_manual( values = c("#FB5B1F", "grey"), 
+                            name = "Industry Status",
+                            breaks = c("False", "True"),
+                            labels = c("Competition", "Cartel"),
                             guide = guide_legend(reverse=TRUE)
                           ) +
-        scale_y_continuous(breaks=seq(0, 0.5, by = 0.05)) +
+        scale_y_continuous(breaks = seq(0, 0.5, by = 0.05)) +
         ggtitle(expression(atop("Difficulties Maintaining Cartel Cooperation", atop(italic("Pricing and Cartel Status for JEC 1880-1886, Midwest to Eastern Seaboard"), "")))) +
-        theme(panel.border=element_blank(), 
-              panel.background=element_blank(),
-              plot.title=element_text(size=20),
-              axis.title.y=element_text(angle=0, vjust=1), 
-              axis.title.x=element_text(hjust=1), 
+        theme(panel.border = element_blank(), 
+              panel.background = element_blank(),
+              plot.title = element_text(size = 20),
+              axis.title.y = element_text(angle = 0, vjust = 1), 
+              axis.title.x = element_text(hjust = 1), 
               panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(), 
-              legend.position="top")
+              legend.position = "top")
 
 plot.cartel
 
@@ -73,15 +112,15 @@ plot.quantity <- ggplot(JEC, aes(x=week, y=quantity, fill=ice)) +
         ) +
         xlab("Week") +
         ylab("Quantity \n Freight") +
-        theme(panel.border=element_blank(), 
-              panel.background=element_blank(), 
-              axis.title.y=element_text(angle=0, vjust=-.2), 
-              axis.title.x=element_text(hjust=1), 
+        theme(panel.border = element_blank(), 
+              panel.background = element_blank(), 
+              axis.title.y = element_text(angle = 0, vjust = -.2), 
+              axis.title.x = element_text(hjust = 1), 
               panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(), 
               legend.key=element_blank(),
               legend.key.size = unit(.25, "cm"),
-              legend.position="bottom") 
+              legend.position = "bottom") 
 
 plot.quantity #quick view of quantity plot
 
@@ -91,7 +130,7 @@ g2<-ggplotGrob(plot.quantity)
 #Bind the tables
 g<-gtable:::rbind_gtable(g1, g2, "first")
 #Remove a row between the plots
-g <- gtable_add_rows(g, unit(-1,"cm"), pos=nrow(g1))
+g <- gtable_add_rows(g, unit(-1,"cm"), pos = nrow(g1))
 #Adjust heights, 5 to 1 ratio top to bottom
 panels <- g$layout$t[grep("panel", g$layout$name)]
 g$heights[panels] <- lapply(c(5,1), unit, "null")
@@ -108,7 +147,7 @@ JEC %>%
                 layer_lines()
 
 ##  Models
-#lnQ Grain Ton Shipped= B0+ B1 ln(Price) + B2 Ice[0,1] + Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
+#ln(Q Grain Ton Shipped)= B0+ B1 ln(Price) + B2 Ice[0,1] + Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
 
 #Simple OLS
 Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
