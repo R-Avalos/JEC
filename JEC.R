@@ -1,19 +1,38 @@
-### Joint Executive Committee Cartel 1880-1886 ###
-### A review of the JEC cartel's ability to maintain cooperation
+#######################################################################
+### Joint Executive Committee Cartel 1880-1886                     ### 
+### A review of the JEC cartel's ability to maintain cooperation  ###
+####################################################################
+
+### Contents #################
+# 1. Setup
+# 2. Load and Wrangle Data
+# 3. Models
+# 4. Visualizations
+##########################
+
+
+###################
+### 3. Setup   ###
+#################
 
 rm(list=ls()) #clear workspace
 
-#libraries
-library(mfx)
-library(AER)
-library(foreign)
-library(ggplot2)
-library(ggvis)
-library(stargazer)
-library(gridExtra)
-library(dplyr)
+#install.packages(c("foreign", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer")) 
 
-### Load Data and Map/Arrange
+#libraries
+library(foreign) 
+library(dplyr) 
+library(AER)
+library(mfx)
+library(ggplot2) 
+library(ggvis)  
+library(gridExtra)
+library(stargazer)
+
+#################################
+# 2. Load Data and Wrangle   ###
+###############################
+
 # Data source, Stock & Watson: http://wps.pearsoned.co.uk/ema_ge_stock_ie_3/193/49605/12699041.cw/content/index.html
 
 JEC <- read.dta("JEC.dta") # read STATA .dta file into data frame
@@ -26,12 +45,45 @@ levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
 levels(JEC$cartel) <- c("Competition", "Cartel") 
 #review data
 summary(JEC)
-plot(JEC$quantity, JEC$price)
-plot(JEC$week, JEC$price)
+plot(JEC$quantity, JEC$price) # simple price and quantity graph
+plot(JEC$week, JEC$price) # price by week
 hist(JEC$price)
 hist(JEC$quantity)
 
-## Visualizations
+##################
+# 3. Models   ###
+################
+
+## Demand Model
+#ln(Q Grain Ton Shipped)= B0+ B1 ln(Price) + B2 Ice[0,1] + Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
+
+#Simple OLS
+Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
+summary(Demand) #results
+plot(Demand) #check residuals 
+
+stargazer(Demand, type="html") #html regression output
+
+#2SLS Model using cartel status as an instrument for price. 
+Demand.2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
+summary(Demand.2sls, diagnostics=TRUE)
+plot(Demand)
+
+stargazer(Demand, Demand.2sls, 
+          single.row = TRUE, 
+          title="JEC Transport Demand Equations",
+          covariate.labels = c("log(Price)", "Cartel", "Ice", "Season 1", "Season 2", "Season 3", "Season 4", "Season 5", "Season 6", "Season 7", "Season 8", "Season 9", "Season 10", "Season 11", "Season 12"),
+          out="models.html"
+) #modified regression table output
+
+# Probit model, Cartel ~ Price Quantity Ice 
+Model4.Probit <- glm(cartel ~ log(quantity) + log(price) + ice , data=JEC, family=binomial(link='probit'))
+summary(Model4.Probit)
+probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
+
+########################
+# 4. Visualizations ###
+######################
 
 # Scatterplot demonstrating supply demand interaction
 plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
@@ -63,7 +115,7 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, alpha
               panel.grid.minor = element_blank(), 
               legend.position ="right", 
               axis.line = element_line(color = "light grey")) +
-        scale_color_manual(values = c("blue", "light grey")) +
+        scale_color_manual(values = c("blue", "grey")) +
         xlab("Quantity") +
         ylab("Price") +
         ggtitle("JEC Grain Transport")
@@ -99,7 +151,7 @@ plot.cartel <- ggplot(JEC, aes(x=week, y=price)) +
               panel.grid.minor = element_blank(), 
               legend.position = "top")
 
-plot.cartel
+plot.cartel #review plot
 
 #create quantity shipping by week graph
 plot.quantity <- ggplot(JEC, aes(x=week, y=quantity, fill=ice)) +
@@ -146,43 +198,3 @@ JEC %>%
                 layer_points(fill = ~factor(cartel)) %>%
                 layer_lines()
 
-##  Models
-#ln(Q Grain Ton Shipped)= B0+ B1 ln(Price) + B2 Ice[0,1] + Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
-
-#Simple OLS
-Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
-summary(Demand)
-
-plot(Model1.OLS) # 
-
-stargazer(Model1.OLS, type="html") #html regression output
-stargazer(Demand, Demand.2sls, 
-          single.row = TRUE, 
-          title="JEC Transport Demand Equations",
-          covariate.labels = c("log(Price)", "Cartel", "Ice", "Season 1", "Season 2", "Season 3", "Season 4", "Season 5", "Season 6", "Season 7", "Season 8", "Season 9", "Season 10", "Season 11", "Season 12"),
-          out="models.html"
-          ) #modified regression table output
-
-#2SLS Model using cartel status as an instrument for price. 
-Demand.2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break
-summary(Demand.2sls, diagnostics=TRUE)
-plot(Demand)
-
-#inverse demand equations
-InverseDemand <- lm(log(price) ~ log(quantity) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
-summary(InverseDemand)
-#2SLS
-InverseDemand.2sls <- ivreg(log(price) ~  + log(quantity) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC)
-summary(InverseDemand.2sls)
-
-
-# Probit model, Cartel ~ Price Quantity Ice 
-Model4.Probit <- glm(cartel ~ log(quantity) + log(price) + ice , data=JEC, family=binomial(link='probit'))
-summary(Model4.Probit)
-probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
-
-
-# Probit model average marginal effects
-ProbitScalar <- mean(dnorm(predict(Model4.Probit, type = "link")))
-ProbitScalar * coef(Model4.Probit)
-### interpretation = a lower quantity, higher price, and lack of ice on the great lakes are associated with greater cooperation.
