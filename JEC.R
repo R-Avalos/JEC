@@ -50,6 +50,10 @@ plot(JEC$week, JEC$price) # price by week
 hist(JEC$price)
 hist(JEC$quantity)
 
+#Export to CSV file
+write.csv(JEC, file="JEC.csv")
+
+
 ##################
 # 3. Models   ###
 ################
@@ -87,7 +91,7 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 
 # Scatterplot demonstrating supply demand interaction
 plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
-        geom_point()+
+        geom_point() +
         theme(panel.border = element_blank(),
               panel.background = element_blank(),
               plot.title = element_text(size = 20),
@@ -103,9 +107,9 @@ plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
 plot.dualCasuality #call plot
 
 #Scatter plot with color breakdown by cartel status and opactiy by time
-plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, alpha=week)) +
-        geom_point()+
-        geom_rug(sides = "lb")+
+plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, shape=cartel)) +
+        geom_point(alpha=.5, size=3, position = position_jitter(w=0.0, h=0.0005)) +
+        geom_rug(sides = "lb", alpha=.5) +
         theme(panel.border = element_blank(),
               panel.background = element_blank(),
               plot.title = element_text(size = 20),
@@ -114,12 +118,19 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, alpha
               panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(), 
               legend.position ="right", 
-              axis.line = element_line(color = "light grey")) +
-        scale_color_manual(values = c("blue", "grey")) +
+              axis.line = element_line(color = "light grey"),
+              legend.key = element_blank(),
+              legend.position = "top"
+              ) +
+        scale_shape_manual(values = c(15, 16)) +
+        scale_color_manual(values = c("yellow", "black")) +
         xlab("Quantity") +
         ylab("Price") +
-        ggtitle("JEC Grain Transport")
+        ggtitle("JEC Grain Transport") + 
+        guides(color = guide_legend(override.aes = list(linetype = 0))) 
+
 plot.dualCasuality.2 #call plot
+
 
 # Price by Week line graph stacked on Quantity by Week bar graph
 # Giants Orange: #FB5B1F
@@ -151,7 +162,7 @@ plot.cartel <- ggplot(JEC, aes(x=week, y=price)) +
               panel.grid.minor = element_blank(), 
               legend.position = "top")
 
-plot.cartel #review plot
+#plot.cartel #review plot
 
 #create quantity shipping by week graph
 plot.quantity <- ggplot(JEC, aes(x=week, y=quantity, fill=ice)) +
@@ -174,7 +185,7 @@ plot.quantity <- ggplot(JEC, aes(x=week, y=quantity, fill=ice)) +
               legend.key.size = unit(.25, "cm"),
               legend.position = "bottom") 
 
-plot.quantity #quick view of quantity plot
+#plot.quantity #quick view of quantity plot
 
 ## arrange price and quantity plots
 g1<-ggplotGrob(plot.cartel)
