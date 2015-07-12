@@ -5,14 +5,14 @@
 
 ### Contents #################
 # 1. Setup
-# 2. Load and Wrangle Data
+# 2. Load, Review, and Wrangle Data
 # 3. Models
 # 4. Visualizations
 ##########################
 
 
 ###################
-### 3. Setup   ###
+### 1. Setup   ###
 #################
 
 rm(list=ls()) #clear workspace
@@ -106,15 +106,15 @@ plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
         ggtitle("JEC Grain Transport")
 plot.dualCasuality #call plot
 
-#Scatter plot with color breakdown by cartel status and opactiy by time
-plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, shape=cartel)) +
-        geom_point(alpha=.5, size=3, position = position_jitter(w=0.0, h=0.0005)) +
-        geom_rug(sides = "lb", alpha=.5) +
+#Scatter plot with color breakdown by cartel status 
+plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel, shape = cartel)) +
+        geom_point(alpha = .5, size = 3, position = position_jitter(w = 0.0, h = 0.0005)) +
+        geom_rug(sides = "lb", alpha = .3) +
         theme(panel.border = element_blank(),
               panel.background = element_blank(),
               plot.title = element_text(size = 20),
               axis.title.y = element_text(angle = 0, vjust = 1), 
-              axis.title.x =element_text(hjust = 1), 
+              axis.title.x = element_text(hjust = 1), 
               panel.grid.major = element_blank(), 
               panel.grid.minor = element_blank(), 
               legend.position ="right", 
@@ -132,11 +132,36 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x=quantity, y=price, color=cartel, shape
 plot.dualCasuality.2 #call plot
 
 
+#Scatter plot with color breakdown by cartel status 
+plot.dualCasuality.3time <- ggplot(JEC, aes(x = quantity, y = price, color = week)) +
+        geom_point(alpha = .5, size = 3, position = position_jitter(w = 0.0, h = 0.0005)) +
+        geom_rug(sides = "lb", alpha = .3) +
+        theme(panel.border = element_blank(),
+              panel.background = element_blank(),
+              plot.title = element_text(size = 20),
+              axis.title.y = element_text(angle = 0, vjust = 1), 
+              axis.title.x = element_text(hjust = 1), 
+              panel.grid.major = element_blank(), 
+              panel.grid.minor = element_blank(), 
+              legend.position ="right", 
+              axis.line = element_line(color = "light grey"),
+              legend.key = element_blank(),
+              legend.position = "top"
+        ) +
+        scale_shape_manual(values = c(15, 16)) +
+        xlab("Quantity") +
+        ylab("Price") +
+        ggtitle("JEC Grain Transport") + 
+        guides(color = guide_legend(override.aes = list(linetype = 0))) 
+
+plot.dualCasuality.3time #call plot
+
+
 # Price by Week line graph stacked on Quantity by Week bar graph
 # Giants Orange: #FB5B1F
-plot.cartel <- ggplot(JEC, aes(x=week, y=price)) +
-        geom_line(aes(color=JEC$cartel, size=JEC$cartel, group=1)) +
-        geom_dl(aes(label=JEC$cartel, color=JEC$cartel), method="lines2") +
+plot.cartel <- ggplot(JEC, aes(x = week, y = price)) +
+        geom_line(aes(color = JEC$cartel, size = JEC$cartel, group = 1)) +
+        geom_dl(aes(label = JEC$cartel, color = JEC$cartel), method="lines2") +
         xlab("") +
         ylab("Price") +
         scale_size_manual(values = c(1.5, 1),
@@ -164,9 +189,9 @@ plot.cartel <- ggplot(JEC, aes(x=week, y=price)) +
 
 #plot.cartel #review plot
 
-#create quantity shipping by week graph
-plot.quantity <- ggplot(JEC, aes(x=week, y=quantity, fill=ice)) +
-        geom_bar(stat='identity') +
+#create quantity of shipping by week graph
+plot.quantity <- ggplot(JEC, aes(x = week, y = quantity, fill = ice)) +
+        geom_bar(stat = 'identity') +
         scale_fill_manual(values = c("blue", "grey"),
                           breaks = c("Clear Shipping Lanes", "Ice"),
                           labels = c("Clear", "Ice"),
@@ -202,10 +227,9 @@ grid.newpage()
 grid.draw(g)
 
 
-##Price by cartel ggvis 
+## Price by cartel using ggvis 
 # Select data -> put into ggvis -> output scatterplot
 JEC %>% 
         ggvis(~week, ~price) %>% 
                 layer_points(fill = ~factor(cartel)) %>%
                 layer_lines()
-
