@@ -28,6 +28,7 @@ library(ggplot2)
 library(ggvis)  
 library(gridExtra)
 library(stargazer)
+library(directlabels)
 
 #################################
 # 2. Load Data and Wrangle   ###
@@ -59,7 +60,7 @@ write.csv(JEC, file="JEC.csv")
 ################
 
 ## Demand Model
-#ln(Q Grain Ton Shipped)= B0+ B1 ln(Price) + B2 Ice[0,1] + Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
+# ln(Q Grain Ton Shipped)= B0+ B1 ln(Price) + B2 Ice[0,1] + B3:15 Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
 
 #Simple OLS
 Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
