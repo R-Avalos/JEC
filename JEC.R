@@ -133,8 +133,8 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel,
 plot.dualCasuality.2 #call plot
 
 
-#Scatter plot with color breakdown by cartel status 
-plot.dualCasuality.3time <- ggplot(JEC, aes(x = quantity, y = price, color = week)) +
+#Scatter plot with color breakdown by time 
+plot.dualCasuality.3time <- ggplot(JEC, aes(x = quantity, y = price, color = week, shape = cartel)) +
         geom_point(alpha = .5, size = 3, position = position_jitter(w = 0.0, h = 0.0005)) +
         geom_rug(sides = "lb", alpha = .3) +
         theme(panel.border = element_blank(),
@@ -150,10 +150,11 @@ plot.dualCasuality.3time <- ggplot(JEC, aes(x = quantity, y = price, color = wee
               legend.position = "top"
         ) +
         scale_shape_manual(values = c(15, 16)) +
+        scale_colour_gradientn(colours = heat.colors(6)) +
         xlab("Quantity") +
         ylab("Price") +
         ggtitle("JEC Grain Transport") + 
-        guides(color = guide_legend(override.aes = list(linetype = 0))) 
+        guides(color = guide_legend(override.aes = list(linetype = 0, alpha = 1))) 
 
 plot.dualCasuality.3time #call plot
 
