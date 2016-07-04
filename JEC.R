@@ -17,18 +17,18 @@
 
 rm(list=ls()) #clear workspace
 
-#install.packages(c("foreign", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer")) 
+# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer")) 
 
 #libraries
-library(foreign) 
+library(haven) 
 library(dplyr) 
-library(AER)
-library(mfx)
+#library(AER)
+#library(mfx)
 library(ggplot2) 
 library(ggvis)  
-library(gridExtra)
-library(stargazer)
-library(directlabels)
+#library(gridExtra)
+#library(stargazer)
+#library(directlabels)
 
 #################################
 # 2. Load Data and Wrangle   ###
@@ -36,14 +36,14 @@ library(directlabels)
 
 # Data source, Stock & Watson: http://wps.pearsoned.co.uk/ema_ge_stock_ie_3/193/49605/12699041.cw/content/index.html
 
-JEC <- read.dta("JEC.dta") # read STATA .dta file into data frame
-str(JEC) # quick review of the data
-# factor columns
-cols <- c("cartel", "seas1", "seas2", "seas3", "seas4", "seas5", "seas6", "seas7", "seas8", "seas9", "seas10", "seas11", "seas12", "ice") # select columns to factor
-JEC[,cols] <- data.frame(apply(JEC[cols], 2, as.factor)) #factor
-#provide names to factor levels
+JEC <- read_dta("JEC.dta") # read STATA .dta file into data frame
+head(JEC) # quick review of the data
+
+JEC$cartel <- as.factor(JEC$cartel) # set as factor
+levels(JEC$cartel) <- c("Competition", "Cartel") # rename factor levels
+JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
-levels(JEC$cartel) <- c("Competition", "Cartel") 
+
 #review data
 summary(JEC)
 plot(JEC$quantity, JEC$price) # simple price and quantity graph
@@ -52,7 +52,7 @@ hist(JEC$price)
 hist(JEC$quantity)
 
 #Export to CSV file
-write.csv(JEC, file="JEC.csv")
+# write.csv(JEC, file="JEC.csv")
 
 
 ##################
@@ -67,7 +67,7 @@ Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 +
 summary(Demand) #results
 plot(Demand) #check residuals 
 
-stargazer(Demand, type="html") #html regression output
+# stargazer(Demand, type="html") #html regression output
 
 #2SLS Model using cartel status as an instrument for price. 
 Demand.2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
