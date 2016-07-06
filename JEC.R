@@ -22,7 +22,7 @@ rm(list=ls()) #clear workspace
 #libraries
 library(haven) 
 library(dplyr) 
-#library(AER)
+library(AER)
 #library(mfx)
 library(ggplot2) 
 library(ggvis)  
@@ -69,10 +69,11 @@ plot(Demand) #check residuals
 
 # stargazer(Demand, type="html") #html regression output
 
-#2SLS Model using cartel status as an instrument for price. 
-Demand.2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
-summary(Demand.2sls, diagnostics=TRUE)
-plot(Demand)
+#2SLS Model using cartel status as an instrument for price.
+# Price is jointly determined by supply and demand
+# Cartel status does not effect the demand for shipment, but does have an effect on supply.
+Demand_2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
+summary(Demand_2sls, diagnostics=TRUE)
 
 stargazer(Demand, Demand.2sls, 
           single.row = TRUE, 
@@ -104,7 +105,8 @@ plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
               axis.line = element_line(color = "light grey")) +
         xlab("Quantity") +
         ylab("Price") +
-        ggtitle("JEC Grain Transport")
+        ggtitle("JEC Grain Transport") +
+        geom_smooth(method = "lm", formula = y~x)
 plot.dualCasuality #call plot
 
 #Scatter plot with color breakdown by cartel status 
@@ -128,6 +130,7 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel,
         xlab("Quantity") +
         ylab("Price") +
         ggtitle("JEC Grain Transport") + 
+        geom_smooth(method = "lm", formula = y~x) +
         guides(color = guide_legend(override.aes = list(linetype = 0))) 
 
 plot.dualCasuality.2 #call plot
