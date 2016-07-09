@@ -17,18 +17,21 @@
 
 rm(list=ls()) #clear workspace
 
-# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer")) 
-
-#libraries
+#libraries ----
+# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools")) 
+#devtools::install_github("tdhock/animint", upgrade_dependencies=FALSE)
 library(haven) 
 library(dplyr) 
 library(AER)
 #library(mfx)
 library(ggplot2) 
-library(ggvis)  
+library(ggvis)
+library(animint)
 #library(gridExtra)
 #library(stargazer)
 #library(directlabels)
+# ----
+
 
 #################################
 # 2. Load Data and Wrangle   ###
@@ -135,6 +138,28 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel,
 
 plot.dualCasuality.2 #call plot
 
+############ Animation -------------------------------------
+# Simple plot, select/deselect catel status
+p1 <- ggplot(JEC, aes(x = quantity, y = price, 
+                     color = cartel, 
+                     clickSelects = cartel)) +
+        geom_jitter()
+p2 <- ggplot(JEC, aes(x = week, y = quantity,
+                      color = ice,
+                      showSelected = cartel)) +
+        geom_point()
+plots <- list(plot1 = p1, plot2 = p2)
+structure(plots, class = "animint")
+
+
+# ms, milliseconds of duration, 2000 is decent
+# 
+        
+#animint2dir(list(plot = p), out.dir = "simple", open.browser = FALSE) # simple directory to compile to
+#library(servr)
+#servr::httd("simple") 
+
+# ----
 
 #Scatter plot with color breakdown by time 
 plot.dualCasuality.3time <- ggplot(JEC, aes(x = quantity, y = price, color = week, shape = cartel)) +
