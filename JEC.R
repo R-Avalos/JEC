@@ -18,10 +18,11 @@
 rm(list=ls()) #clear workspace
 
 #libraries ----
-# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools")) 
+# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools", "lubridate")) 
 #devtools::install_github("tdhock/animint", upgrade_dependencies=FALSE)
 library(haven) 
-library(dplyr) 
+library(dplyr)
+library(lubridate)
 library(AER)
 #library(mfx)
 library(ggplot2) 
@@ -42,17 +43,28 @@ library(animint)
 JEC <- read_dta("JEC.dta") # read STATA .dta file into data frame
 head(JEC) # quick review of the data
 
+# Format Data -----
 JEC$cartel <- as.factor(JEC$cartel) # set as factor
 levels(JEC$cartel) <- c("Competition", "Cartel") # rename factor levels
 JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
+Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
+JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1
 
-#review data
-summary(JEC)
-plot(JEC$quantity, JEC$price) # simple price and quantity graph
-plot(JEC$week, JEC$price) # price by week
-hist(JEC$price)
-hist(JEC$quantity)
+# Setup Trigger
+# If week before caretl = True, and current week cartel = False, then set Trigger to 1 
+Trigger <- function(x) { 
+        if (JEC$cartel = 1 while week(x - 1) && JEC$cartel = 0 while week(x)) {
+                JEC$Trigger = "TRUE"
+        } else {
+                JEC$Trigger = "FALSE"
+        }
+}
+
+
+
+# ---
+
 
 #Export to CSV file
 # write.csv(JEC, file="JEC.csv")
@@ -94,7 +106,10 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 # 4. Visualizations ###
 ######################
 
-# Scatterplot demonstrating supply demand interaction
+# Trigger dates and duration
+# For each week, if previous week = Cartel, and this week = competitive, then set to 1... else set to 0
+
+# Scatterplot demonstrating supply demand interaction ----
 plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
         geom_point() +
         theme(panel.border = element_blank(),
@@ -111,8 +126,9 @@ plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
         ggtitle("JEC Grain Transport") +
         geom_smooth(method = "lm", formula = y~x)
 plot.dualCasuality #call plot
+# ----
 
-#Scatter plot with color breakdown by cartel status 
+#Scatter plot with color breakdown by cartel status ---- 
 plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel, shape = cartel)) +
         geom_point(alpha = .5, size = 3, position = position_jitter(w = 0.0, h = 0.0005)) +
         geom_rug(sides = "lb", alpha = .3) +
@@ -137,8 +153,9 @@ plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel,
         guides(color = guide_legend(override.aes = list(linetype = 0))) 
 
 plot.dualCasuality.2 #call plot
+# ----
 
-############ Animation -------------------------------------
+############ Animation ----
 # Simple plot, select/deselect catel status
 p1 <- ggplot(JEC, aes(x = quantity, y = price, 
                      color = cartel, 
