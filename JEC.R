@@ -52,18 +52,18 @@ Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
 JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1
 
 # Setup Trigger
-# If week before caretl = True, and current week cartel = False, then set Trigger to 1 
-Trigger <- function(x) { 
-        if (JEC$cartel = 1 while week(x - 1) && JEC$cartel = 0 while week(x)) {
-                JEC$Trigger = "TRUE"
-        } else {
-                JEC$Trigger = "FALSE"
-        }
-}
-
-
-
-# ---
+JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE)    
+summary(JEC$Trigger)
+x <- ggplot(JEC, aes(x=date,y=Trigger, 
+                     alpha= ice)) +
+        geom_bar(stat="identity") +
+        theme(
+                panel.background = element_blank(),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank()
+        )
+x
+1# ---
 
 
 #Export to CSV file
@@ -156,15 +156,29 @@ plot.dualCasuality.2 #call plot
 # ----
 
 ############ Animation ----
+#####
 # Simple plot, select/deselect catel status
-p1 <- ggplot(JEC, aes(x = quantity, y = price, 
-                     color = cartel, 
-                     clickSelects = cartel)) +
-        geom_jitter()
-p2 <- ggplot(JEC, aes(x = week, y = quantity,
+p1 <- ggplot(JEC, aes(x = week, y = quantity,
                       color = ice,
-                      showSelected = cartel)) +
-        geom_point()
+                      clickSelects = cartel)) +
+        geom_point()+
+        scale_color_manual(values = c("Dark Blue", "White")) +
+        theme(panel.border = element_blank(),
+              panel.background = element_rect(fill="Blue"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()
+        )
+p2 <- ggplot(JEC, aes(x = quantity, y = price, 
+                     color = cartel, 
+                     showSelected = cartel)) +
+        geom_jitter() +
+        scale_color_manual(values = c("Light Grey", "Red")) +
+        theme(panel.border = element_blank(),
+              panel.background = element_rect(fill="black"),
+              panel.grid.major = element_blank(),
+              panel.grid.minor = element_blank()
+        )
+
 plots <- list(plot1 = p1, plot2 = p2)
 structure(plots, class = "animint")
 
