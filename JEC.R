@@ -45,7 +45,8 @@ head(JEC) # quick review of the data
 
 # Format Data -----
 JEC$cartel <- as.factor(JEC$cartel) # set as factor
-levels(JEC$cartel) <- c("Competition", "Cartel") # rename factor levels
+JEC$cartel <- with(JEC, factor(cartel, levels = rev(levels(cartel))))
+levels(JEC$cartel) <- c("Cartel", "Competition") # rename factor levels
 JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
 Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
@@ -54,16 +55,8 @@ JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as 
 # Setup Trigger
 JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE)    
 summary(JEC$Trigger)
-x <- ggplot(JEC, aes(x=date,y=Trigger, 
-                     alpha= ice)) +
-        geom_bar(stat="identity") +
-        theme(
-                panel.background = element_blank(),
-                panel.grid.major = element_blank(),
-                panel.grid.minor = element_blank()
-        )
-x
-1# ---
+
+
 
 
 #Export to CSV file
@@ -106,8 +99,22 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 # 4. Visualizations ###
 ######################
 
-# Trigger dates and duration
-# For each week, if previous week = Cartel, and this week = competitive, then set to 1... else set to 0
+# Cournot Competition Plot
+Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
+        geom_bar(stat="identity") +
+        theme(
+                panel.background = element_blank(),
+                panel.grid.major = element_blank(),
+                panel.grid.minor = element_blank(),
+                legend.position = "none"
+        ) +
+        scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+        ylab("") +
+        xlab("Date") +
+        ggtitle("JEC Cournot Competition") +
+        scale_fill_manual(values = c("grey", "red")) +
+        scale_alpha_manual(values = c(.5, 1)) 
+Plot_Cournot 
 
 # Scatterplot demonstrating supply demand interaction ----
 plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
