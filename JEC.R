@@ -18,7 +18,7 @@
 rm(list=ls()) #clear workspace
 
 #libraries ----
-# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools", "lubridate")) 
+# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools", "lubridate", "ggthemes", "ggExtra"))
 #devtools::install_github("tdhock/animint", upgrade_dependencies=FALSE)
 library(haven) 
 library(dplyr)
@@ -26,6 +26,8 @@ library(lubridate)
 library(AER)
 #library(mfx)
 library(ggplot2) 
+library(ggthemes)
+library(ggExtra)
 library(ggvis)
 library(animint)
 #library(gridExtra)
@@ -101,24 +103,27 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 
 # Cournot Competition Plot
 Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
-        geom_bar(stat="identity") +
+        geom_bar(stat="identity", width = 7) +
+        scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+        ylab("") +
+        xlab("Date") +
+        ggtitle("JEC Competition") +
+        scale_fill_manual(values = c("grey", "dodger blue2")) +
+        scale_alpha_manual(values = c(0.25, 1)) +
         theme(
                 panel.background = element_blank(),
                 panel.grid.major = element_blank(),
                 panel.grid.minor = element_blank(),
-                legend.position = "none"
-        ) +
-        scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
-        ylab("") +
-        xlab("Date") +
-        ggtitle("JEC Cournot Competition") +
-        scale_fill_manual(values = c("grey", "red")) +
-        scale_alpha_manual(values = c(.5, 1)) 
-Plot_Cournot 
+                panel.border = element_blank(),
+                legend.position = "none",
+                plot.title = element_text(color = "dodger blue2", size = 18)
+        ) 
+Plot_Cournot
+ggsave(Plot_Cournot, file="cournot_plot.png", width =12, height = 4, dpi = 300)
 
 # Scatterplot demonstrating supply demand interaction ----
 plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
-        geom_point() +
+        geom_point(alpha=0.25) +
         theme(panel.border = element_blank(),
               panel.background = element_blank(),
               plot.title = element_text(size = 20),
@@ -131,8 +136,12 @@ plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
         xlab("Quantity") +
         ylab("Price") +
         ggtitle("JEC Grain Transport") +
-        geom_smooth(method = "lm", formula = y~x)
-plot.dualCasuality #call plot
+        #geom_smooth(method = "lm", formula = y~x, color = "grey", alpha = 0.25) +
+        theme_tufte(ticks = FALSE)
+ggMarginal(plot.dualCasuality, type = "histogram", fill = "light grey", color = "light grey") #call plot
+
+## Create Simpler Graph
+
 # ----
 
 #Scatter plot with color breakdown by cartel status ---- 
