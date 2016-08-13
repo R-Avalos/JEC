@@ -121,18 +121,13 @@ Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
 Plot_Cournot
 ggsave(Plot_Cournot, file="cournot_plot.png", width =12, height = 4, dpi = 300)
 
+
+## Plot, different prices for quantities given cartel status
+
+
 # Scatterplot demonstrating supply demand interaction ----
 plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
         geom_point(alpha=0.25) +
-        theme(panel.border = element_blank(),
-              panel.background = element_blank(),
-              plot.title = element_text(size = 20),
-              axis.title.y = element_text(angle = 0, vjust = 1), 
-              axis.title.x = element_text(hjust = 1), 
-              panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(), 
-              legend.position ="right",
-              axis.line = element_line(color = "light grey")) +
         xlab("Quantity") +
         ylab("Price") +
         ggtitle("JEC Grain Transport") +
@@ -145,55 +140,51 @@ ggMarginal(plot.dualCasuality, type = "histogram", fill = "light grey", color = 
 # ----
 
 #Scatter plot with color breakdown by cartel status ---- 
-plot.dualCasuality.2 <- ggplot(JEC, aes(x = quantity, y = price, color = cartel, shape = cartel)) +
-        geom_point(alpha = .5, size = 3, position = position_jitter(w = 0.0, h = 0.0005)) +
-        geom_rug(sides = "lb", alpha = .3) +
-        theme(panel.border = element_blank(),
-              panel.background = element_blank(),
-              plot.title = element_text(size = 20),
-              axis.title.y = element_text(angle = 0, vjust = 1), 
-              axis.title.x = element_text(hjust = 1), 
-              panel.grid.major = element_blank(), 
-              panel.grid.minor = element_blank(), 
-              legend.position ="right", 
-              axis.line = element_line(color = "light grey"),
-              legend.key = element_blank(),
-              legend.position = "top"
-              ) +
+
+Plot_PriceDiff_Cartel <- ggplot(JEC, 
+                               aes(x = quantity, 
+                                   y = price, 
+                                   color = cartel)
+                               ) +
+        geom_point(alpha = .2) +
         scale_shape_manual(values = c(15, 16)) +
-        scale_color_manual(values = c("yellow", "black")) +
+        scale_color_manual(values = c("black", "blue")) +
         xlab("Quantity") +
         ylab("Price") +
         ggtitle("JEC Grain Transport") + 
-        geom_smooth(method = "lm", formula = y~x) +
-        guides(color = guide_legend(override.aes = list(linetype = 0))) 
+        geom_smooth(method = "lm", formula = y~x, show.legend = FALSE) +
+        guides(color = guide_legend(override.aes = list(linetype = 0))) +
+        theme_tufte() +
+        theme(legend.title=element_blank(),
+              legend.position="top",
+              legend.key = element_rect(colour = "white")
+        )
 
-plot.dualCasuality.2 #call plot
+Plot_PriceDiff_Cartel #call plot
+
+# Plot Cartel Only (grey out competition)
+# Plot Competition Only (greyout cartel)
+# Combine all three plots into a row
+
+
 # ----
 
 ############ Animation ----
 #####
 # Simple plot, select/deselect catel status
-p1 <- ggplot(JEC, aes(x = week, y = quantity,
+p1 <- ggplot(JEC, aes(x = quantity, y = price, 
+                      color = cartel, 
+                      showSelected = cartel)) +
+        geom_jitter() +
+        scale_color_manual(values = c("Red", "Dodger Blue")) +
+        theme_tufte()
+
+p2 <- ggplot(JEC, aes(x = week, y = quantity,
                       color = ice,
                       clickSelects = cartel)) +
         geom_point()+
-        scale_color_manual(values = c("Dark Blue", "White")) +
-        theme(panel.border = element_blank(),
-              panel.background = element_rect(fill="Blue"),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank()
-        )
-p2 <- ggplot(JEC, aes(x = quantity, y = price, 
-                     color = cartel, 
-                     showSelected = cartel)) +
-        geom_jitter() +
-        scale_color_manual(values = c("Light Grey", "Red")) +
-        theme(panel.border = element_blank(),
-              panel.background = element_rect(fill="black"),
-              panel.grid.major = element_blank(),
-              panel.grid.minor = element_blank()
-        )
+        scale_color_manual(values = c("Dark Blue", "Dark Grey")) +
+        theme_tufte()
 
 plots <- list(plot1 = p1, plot2 = p2)
 structure(plots, class = "animint")
