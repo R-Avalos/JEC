@@ -18,16 +18,21 @@
 rm(list=ls()) #clear workspace
 
 #libraries ----
-# install.packages(c("haven", "dplyr", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools", "lubridate", "ggthemes", "ggExtra"))
+# install.packages(c("haven", "dplyr", "broom", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools", "lubridate", "ggthemes", "ggExtra"))
 #devtools::install_github("tdhock/animint", upgrade_dependencies=FALSE)
+
+
 library(haven) 
 library(dplyr)
 library(lubridate)
+library(tidyr)
+library(broom)
 library(AER)
 #library(mfx)
 library(ggplot2) 
 library(ggthemes)
 library(ggExtra)
+library(gridExtra)
 library(ggvis)
 library(animint)
 #library(gridExtra)
@@ -123,48 +128,92 @@ ggsave(Plot_Cournot, file="cournot_plot.png", width =12, height = 4, dpi = 300)
 
 
 ## Plot, different prices for quantities given cartel status
+JEC_cartel <- subset(JEC, cartel=="Cartel") # trend line for cartel true
+JEC_competition <- subset(JEC, cartel=="Competition") # trend line for cartel false
+ols_cartel <- lm(price ~ quantity, data = JEC_cartel)
+summary(ols_cartel)
+ols_competition <- lm(price ~ quantity, data = JEC_competition)
+summary(ols_competition)
+
+Linear_equation <- function(dependent_var, OLS, estimate_digits){
+        y <- tidy(OLS)
+        y1 <- glance(OLS)
+        y1b <- format(round(y1, digits = 3))
+        y2 <- format(round(y[2], digits = estimate_digits))
+        z <- paste0(dependent_var, " = ", 
+                    y2[2,1], " ", 
+                    y$term[2], " + ", 
+                    y2[1,1], ", R^2 = ",
+                    y1b[1,1]
+                    )
+        print(z)
+}
 
 
-# Scatterplot demonstrating supply demand interaction ----
-plot.dualCasuality <- ggplot(JEC, aes(x=quantity, y=price)) +
-        geom_point(alpha=0.25) +
-        xlab("Quantity") +
-        ylab("Price") +
-        ggtitle("JEC Grain Transport") +
-        #geom_smooth(method = "lm", formula = y~x, color = "grey", alpha = 0.25) +
-        theme_tufte(ticks = FALSE)
-ggMarginal(plot.dualCasuality, type = "histogram", fill = "light grey", color = "light grey") #call plot
 
-## Create Simpler Graph
-
-# ----
-
-#Scatter plot with color breakdown by cartel status ---- 
-
-Plot_PriceDiff_Cartel <- ggplot(JEC, 
-                               aes(x = quantity, 
-                                   y = price, 
-                                   color = cartel)
-                               ) +
-        geom_point(alpha = .2) +
+Plot_PriceDiff_Cartel <- ggplot(JEC, aes(x = quantity, y = price, color = cartel)) +
+        geom_point(alpha = .5, size = 2) +
+        geom_rangeframe(color = "black") +
+        geom_vline(xintercept = c(0, 20000, 40000, 60000), 
+                   color = "grey", 
+                   alpha = 0.15) +
+        expand_limits(x = 0, y = 0) +
+        scale_x_continuous(breaks=seq(0, 70000, 20000)) +
+        scale_y_continuous(breaks=seq(0, 1, 0.05)) +
         scale_shape_manual(values = c(15, 16)) +
-        scale_color_manual(values = c("black", "blue")) +
+        scale_color_manual(values = c("red", "dodger blue")) +
         xlab("Quantity") +
         ylab("Price") +
-        ggtitle("JEC Grain Transport") + 
-        geom_smooth(method = "lm", formula = y~x, show.legend = FALSE) +
-        guides(color = guide_legend(override.aes = list(linetype = 0))) +
-        theme_tufte() +
+        ggtitle("Cartel vs Competition \nLinear Price Trends") + 
+        geom_smooth(method = "lm", formula = y~x) +
+        annotate("text", 
+                 x = 60000, y = 0.10, 
+                 label = lm_eqn(ols_competition),
+                 color = "dodger blue") +
+        guides(color = FALSE) +
+        theme_tufte(ticks = FALSE) +
         theme(legend.title=element_blank(),
-              legend.position="top",
-              legend.key = element_rect(colour = "white")
-        )
+              legend.key = element_rect(colour = "white"),
+              plot.title =element_text(size = 8)
+                )
+Plot_PriceDiff_Cartel #call plot with trend lines
 
-Plot_PriceDiff_Cartel #call plot
+# Plot Cartel Only (grey out competition) # Plot Competition Only (greyout cartel)
+JEC_2 <- subset(JEC, select = -(cartel)) # remove cartel from data set
 
-# Plot Cartel Only (grey out competition)
-# Plot Competition Only (greyout cartel)
+Plot_Test <- ggplot(data = JEC, aes(x = quantity, 
+                                    y = price, 
+                                    color = cartel)) +
+        geom_point(data = JEC_2, 
+                   color = "grey", 
+                   alpha = 0.15, 
+                   size = 2) +
+        geom_point(size = 2) +
+        geom_rangeframe(color = "grey") +
+        geom_vline(xintercept = c(0, 20000, 40000, 60000), 
+                   color = "grey", 
+                   alpha = 0.15) +
+        scale_color_manual(values = c("red", "dodger blue")) +
+        expand_limits(x = 0, y = 0) +
+        scale_x_continuous(breaks=seq(0, 70000, 20000)) +
+        scale_y_continuous(breaks=seq(0, 1, 0.05)) +
+        xlab("Quantity") +
+        ylab("Price") +
+        facet_wrap(~ cartel) +
+        guides(color = FALSE) +
+        theme_tufte(ticks = FALSE) +
+        theme(axis.text.x = element_text(color = "grey"),
+              axis.text.y = element_text(color = "grey"),
+              axis.title.x = element_text(color = "grey"),
+              axis.title.y = element_text(color = "grey")
+              ) 
+Plot_Test
+
 # Combine all three plots into a row
+grid.arrange(Plot_Test, Plot_PriceDiff_Cartel, 
+             nrow= 1,
+             widths = 2:1,
+             top = "Price and Quantity According to Cartel Status")
 
 
 # ----
