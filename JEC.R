@@ -36,9 +36,9 @@ library(gridExtra)
 library(ggvis)
 library(animint)
 #library(gridExtra)
-#library(stargazer)
+library(stargazer)
 #library(directlabels)
-# ----
+
 
 
 #################################
@@ -46,7 +46,6 @@ library(animint)
 ###############################
 
 # Data source, Stock & Watson: http://wps.pearsoned.co.uk/ema_ge_stock_ie_3/193/49605/12699041.cw/content/index.html
-
 JEC <- read_dta("JEC.dta") # read STATA .dta file into data frame
 head(JEC) # quick review of the data
 
@@ -58,29 +57,78 @@ JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
 Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
 JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1
+JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE) # Setup Trigger
 
-# Setup Trigger
-JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE)    
 summary(JEC$Trigger)
 
+# Summary Stats, must contver to data frame for stargazer package
+df_JEC <- as.data.frame(JEC)
+df_JEC <- subset(df_JEC, select = -c(Trigger))
+df_JEC$ice <- as.numeric(df_JEC$ice)
+df_JEC$cartel <- as.numeric(df_JEC$cartel)
+stargazer(df_JEC, type = "html", title = "JEC Summary Table", digits = 2,  out = "JECsummary.html") #save html
 
-
-
-#Export to CSV file
-# write.csv(JEC, file="JEC.csv")
 
 
 ##################
 # 3. Models   ###
 ################
 
-## Demand Model
-# ln(Q Grain Ton Shipped)= B0+ B1 ln(Price) + B2 Ice[0,1] + B3:15 Seasonal Variation in Demand [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] + error
+## Demand Models
 
 #Simple OLS
 Demand <- lm(log(quantity) ~ log(price) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
 summary(Demand) #results
-plot(Demand) #check residuals 
+plot(Demand) # quick check residuals 
+
+# Plots to output
+plot_Demand_residfit <-ggplot(Demand, aes(.fitted, .resid)) + 
+        geom_point(alpha = 0.5) + 
+        stat_smooth(method="loess") + 
+        geom_hline(yintercept=0, col="red", linetype="dashed") + 
+        xlab("Fitted Values") + 
+        ylab("Residuals") + ggtitle("Residual vs Fitted Plot") +
+        theme_tufte()
+plot_Demand_residfit
+
+plot_Demand_qq <- ggplot(Demand, aes(sample = .stdresid)) +
+        geom_point(na.rm = TRUE) + 
+        geom_abline(aes(qqline(.stdresid))) + 
+        xlab("Theoretical Quantiles") + 
+        ylab("Standardized Residuals") + ggtitle("Normal Q-Q") +
+        theme_tufte()
+plot_Demand_qq # not quite working with aesthestic
+
+
+stargazer(Demand, 
+          single.row = TRUE, 
+          title="JEC Transport Demand",
+          covariate.labels = c("log(Price)", "Cartel", "Ice", "<font color = grey>Season 1</font>", "<font color = grey>Season 2</font>", "<font color = grey>Season 3</font>", "<font color = grey>Season 4</font>", "<font color = grey>Season 5</font>", "<font color = grey>Season 6</font>", "<font color = grey>Season 7</font>", "Season 8", "<font color = grey>Season 9</font>", "<font color = grey>Season 10</font>", "<font color = grey>Season 11</font>", "<font color = grey>Season 12</font>"),
+          dep.var.labels = "log(Quantity)",
+          column.labels = "OLS",
+          type = "html",
+          out="OLSmodel.html"
+) #OLS output
+
+
+
+
+
+plot_OLS_residfit <- ggplot(Demand, aes(.fitted, .resid)) +
+        geom_point(alpha = 0.5) +
+        geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+        stat_smooth(method="loess") +
+        xlab("Fitted Values") +
+        ylab("Residuals") +
+        ggtitle("OLS Residual vs Fitted") +
+        theme_tufte()
+plot_OLS_residfit
+
+plot_OLS_QQ <- ggplot(Demand, aes(qqnorm(.stdresid)[[1]], .stdresid)) +
+        geom_point(na.rm = TRUE) + 
+        geom_abline(aes(qqline(.stdresid)), color = "red") +
+        theme_tufte ()
+plot_OLS_QQ
 
 # stargazer(Demand, type="html") #html regression output
 
@@ -106,6 +154,9 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 # 4. Visualizations ###
 ######################
 
+# create a facet wrap for summary data, scatter plots for each variable over time
+# corrplot
+
 # Cournot Competition Plot
 Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
         geom_bar(stat="identity", width = 7) +
@@ -123,33 +174,24 @@ Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
                 legend.position = "none",
                 plot.title = element_text(color = "dodger blue2", size = 18)
         ) 
-Plot_Cournot
+Plot_Cournot #print plot
 ggsave(Plot_Cournot, file="cournot_plot.png", width =12, height = 4, dpi = 300)
 
 
 ## Plot, different prices for quantities given cartel status
-JEC_cartel <- subset(JEC, cartel=="Cartel") # trend line for cartel true
-JEC_competition <- subset(JEC, cartel=="Competition") # trend line for cartel false
-ols_cartel <- lm(price ~ quantity, data = JEC_cartel)
-summary(ols_cartel)
-ols_competition <- lm(price ~ quantity, data = JEC_competition)
-summary(ols_competition)
-
-Linear_equation <- function(dependent_var, OLS, estimate_digits){
-        y <- tidy(OLS)
-        y1 <- glance(OLS)
-        y1b <- format(round(y1, digits = 3))
-        y2 <- format(round(y[2], digits = estimate_digits))
-        z <- paste0(dependent_var, " = ", 
-                    y2[2,1], " ", 
-                    y$term[2], " + ", 
-                    y2[1,1], ", R^2 = ",
-                    y1b[1,1]
-                    )
-        print(z)
-}
-
-
+# Linear_equation <- function(dependent_var, OLS, digit_length){
+#         y <- tidy(OLS)
+#         y1 <- glance(OLS)
+#         y1b <- format(round(y1, digits = 3))
+#         y2 <- format(round(y[2], digits = digit_length))
+#         z <- paste0(dependent_var, " = ", 
+#                     y2[2,1], " ", 
+#                     y$term[2], " + ", 
+#                     y2[1,1], ", R^2 = ",
+#                     y1b[1,1]
+#                     )
+#         print(z)
+# }
 
 Plot_PriceDiff_Cartel <- ggplot(JEC, aes(x = quantity, y = price, color = cartel)) +
         geom_point(alpha = .5, size = 2) +
@@ -166,27 +208,18 @@ Plot_PriceDiff_Cartel <- ggplot(JEC, aes(x = quantity, y = price, color = cartel
         ylab("Price") +
         ggtitle("Cartel vs Competition \nLinear Price Trends") + 
         geom_smooth(method = "lm", formula = y~x) +
-        annotate("text", 
-                 x = 60000, y = 0.10, 
-                 label = lm_eqn(ols_competition),
-                 color = "dodger blue") +
         guides(color = FALSE) +
         theme_tufte(ticks = FALSE) +
         theme(legend.title=element_blank(),
               legend.key = element_rect(colour = "white"),
               plot.title =element_text(size = 8)
                 )
-Plot_PriceDiff_Cartel #call plot with trend lines
-
 # Plot Cartel Only (grey out competition) # Plot Competition Only (greyout cartel)
-JEC_2 <- subset(JEC, select = -(cartel)) # remove cartel from data set
-
-Plot_Test <- ggplot(data = JEC, aes(x = quantity, 
-                                    y = price, 
-                                    color = cartel)) +
+JEC_2 <- subset(JEC, select = -(cartel)) # remove cartel from data set to plot points
+Plot_StatusPoint <- ggplot(data = JEC, aes(x = quantity, y = price, color = cartel)) +
         geom_point(data = JEC_2, 
-                   color = "grey", 
-                   alpha = 0.15, 
+                   color = "light grey", 
+                   alpha = .15, 
                    size = 2) +
         geom_point(size = 2) +
         geom_rangeframe(color = "grey") +
@@ -206,15 +239,18 @@ Plot_Test <- ggplot(data = JEC, aes(x = quantity,
               axis.text.y = element_text(color = "grey"),
               axis.title.x = element_text(color = "grey"),
               axis.title.y = element_text(color = "grey")
-              ) 
-Plot_Test
-
+              )
+Plot_StatusPoint #view plot
 # Combine all three plots into a row
-grid.arrange(Plot_Test, Plot_PriceDiff_Cartel, 
+grid.arrange(Plot_StatusPoint, Plot_PriceDiff_Cartel, 
+             nrow= 1,
+             widths = 2:1,
+             top = "Price and Quantity According to Cartel Status") #view plot
+g <- arrangeGrob(Plot_StatusPoint, Plot_PriceDiff_Cartel, 
              nrow= 1,
              widths = 2:1,
              top = "Price and Quantity According to Cartel Status")
-
+ggsave(g, file="cartelstatus_plot.png", width = 12, height = 4, dpi = 300) #save plot
 
 # ----
 
