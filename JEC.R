@@ -48,26 +48,30 @@ library(stargazer)
 # Data source, Stock & Watson: http://wps.pearsoned.co.uk/ema_ge_stock_ie_3/193/49605/12699041.cw/content/index.html
 JEC <- read_dta("JEC.dta") # read STATA .dta file into data frame
 head(JEC) # quick review of the data
+summary(JEC)
 
 # Format Data -----
 JEC$cartel <- as.factor(JEC$cartel) # set as factor
-JEC$cartel <- with(JEC, factor(cartel, levels = rev(levels(cartel))))
-levels(JEC$cartel) <- c("Cartel", "Competition") # rename factor levels
+levels(JEC$cartel) <- c( "Competition", "Cartel") # rename factor levels
 JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
 Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
 JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1
-JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE) # Setup Trigger
-
-summary(JEC$Trigger)
+# JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE) # Setup Trigger
 
 # Summary Stats, must contver to data frame for stargazer package
 df_JEC <- as.data.frame(JEC)
-df_JEC <- subset(df_JEC, select = -c(Trigger))
-df_JEC$ice <- as.numeric(df_JEC$ice)
-df_JEC$cartel <- as.numeric(df_JEC$cartel)
-stargazer(df_JEC, type = "html", title = "JEC Summary Table", digits = 2,  out = "JECsummary.html") #save html
-
+# df_JEC <- subset(df_JEC, select = -c(Trigger))
+df_JEC$ice <- as.numeric(df_JEC$ice) - 1  
+df_JEC$cartel <- as.numeric(df_JEC$cartel) - 1
+cols <- c(5:16) #select seasons
+df_JEC[,cols] <- lapply(df_JEC[,cols], as.logical) # convert seasons to logical 
+stargazer(df_JEC, 
+          type = "html", 
+          title = "JEC Summary Table", 
+          digits = 2, 
+          summary.logical = FALSE,  
+          out = "JECsummary.html") #save html
 
 
 ##################
@@ -110,10 +114,6 @@ stargazer(Demand,
           out="OLSmodel.html"
 ) #OLS output
 
-
-
-
-
 plot_OLS_residfit <- ggplot(Demand, aes(.fitted, .resid)) +
         geom_point(alpha = 0.5) +
         geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
@@ -123,6 +123,7 @@ plot_OLS_residfit <- ggplot(Demand, aes(.fitted, .resid)) +
         ggtitle("OLS Residual vs Fitted") +
         theme_tufte()
 plot_OLS_residfit
+ggsave(plot_OLS_residfit, file="plot_OLS_residfit.png", width = 6, height = 4, dpi = 300)
 
 plot_OLS_QQ <- ggplot(Demand, aes(qqnorm(.stdresid)[[1]], .stdresid)) +
         geom_point(na.rm = TRUE) + 
@@ -130,7 +131,6 @@ plot_OLS_QQ <- ggplot(Demand, aes(qqnorm(.stdresid)[[1]], .stdresid)) +
         theme_tufte ()
 plot_OLS_QQ
 
-# stargazer(Demand, type="html") #html regression output
 
 #2SLS Model using cartel status as an instrument for price.
 # Price is jointly determined by supply and demand
@@ -157,15 +157,16 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 # create a facet wrap for summary data, scatter plots for each variable over time
 # corrplot
 
+
 # Cournot Competition Plot
 Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
-        geom_bar(stat="identity", width = 7) +
+        geom_bin2d(stat = "identity") +
         scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
         ylab("") +
         xlab("Date") +
         ggtitle("JEC Competition") +
-        scale_fill_manual(values = c("grey", "dodger blue2")) +
-        scale_alpha_manual(values = c(0.25, 1)) +
+        scale_fill_manual(values = c("dodger blue2", "grey")) +
+        scale_alpha_manual(values = c(1, 0.25)) +
         theme(
                 panel.background = element_blank(),
                 panel.grid.major = element_blank(),
