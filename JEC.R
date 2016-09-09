@@ -28,12 +28,10 @@ library(lubridate)
 library(tidyr)
 library(broom)
 library(AER)
-#library(mfx)
 library(ggplot2) 
 library(ggthemes)
 library(ggExtra)
 library(gridExtra)
-library(ggvis)
 library(animint)
 #library(gridExtra)
 library(stargazer)
@@ -57,7 +55,10 @@ JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
 Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
 JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1
+JEC$market_revenue <- JEC$price*JEC$quantity 
+JEC$price_variance <- c(NA, diff(JEC$price))
 # JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE) # Setup Trigger
+
 
 # Summary Stats, must contver to data frame for stargazer package
 df_JEC <- as.data.frame(JEC)
@@ -77,6 +78,19 @@ stargazer(df_JEC,
 ##################
 # 3. Models   ###
 ################
+
+### Cartel status check
+Model_Cartel <- lm(log(price) ~ log(quantity) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
+summary(Model_Cartel)
+
+# market revenue when cartel is active and when not
+Cartel_Revenue <- JEC %>% filter(cartel == "Cartel") 
+summary(Cartel_Revenue$market_revenue)        
+sd(Cartel_Revenue$market_revenue)        
+
+Competition_Revenue <- JEC %>% filter(cartel == "Competition")
+summary(Competition_Revenue$market_revenue)        
+sd(Competition_Revenue$market_revenue)        
 
 ## Demand Models
 
@@ -133,14 +147,18 @@ plot_OLS_QQ
 
 
 #2SLS Model using cartel status as an instrument for price.
-# Price is jointly determined by supply and demand
-# Cartel status does not effect the demand for shipment, but does have an effect on supply.
 Demand_2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
 summary(Demand_2sls, diagnostics=TRUE)
 
-stargazer(Demand, Demand.2sls, 
-          single.row = TRUE, 
+Instrument_test <- lm(price ~ cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
+summary(Instrument_test)
+
+stargazer(Demand, Instrument_test, Demand_2sls, 
+          single.row = TRUE,
+          model.names = FALSE,
+          model.numbers = FALSE,
           title="JEC Transport Demand Equations",
+          column.labels = c("OLS", "Instrument Test", "2SLS"),
           covariate.labels = c("log(Price)", "Cartel", "Ice", "Season 1", "Season 2", "Season 3", "Season 4", "Season 5", "Season 6", "Season 7", "Season 8", "Season 9", "Season 10", "Season 11", "Season 12"),
           out="models.html"
 ) #modified regression table output
@@ -150,13 +168,13 @@ Model4.Probit <- glm(cartel ~ log(quantity) + log(price) + ice , data=JEC, famil
 summary(Model4.Probit)
 probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 
+
 ########################
 # 4. Visualizations ###
 ######################
 
 # create a facet wrap for summary data, scatter plots for each variable over time
 # corrplot
-
 
 # Cournot Competition Plot
 Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
