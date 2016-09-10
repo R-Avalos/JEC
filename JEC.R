@@ -17,26 +17,22 @@
 
 rm(list=ls()) #clear workspace
 
-#libraries ----
+#libraries 
 # install.packages(c("haven", "dplyr", "broom", "AER", "mfx", "ggplot2", "ggvis", "gridExtra", "stargazer", "devtools", "lubridate", "ggthemes", "ggExtra"))
 #devtools::install_github("tdhock/animint", upgrade_dependencies=FALSE)
-
-
 library(haven) 
 library(dplyr)
 library(lubridate)
-library(tidyr)
-library(broom)
 library(AER)
 library(ggplot2) 
 library(ggthemes)
 library(ggExtra)
 library(gridExtra)
+library(corrplot)
 library(animint)
-#library(gridExtra)
+library(gridExtra)
 library(stargazer)
-#library(directlabels)
-
+library(directlabels)
 
 
 #################################
@@ -48,16 +44,21 @@ JEC <- read_dta("JEC.dta") # read STATA .dta file into data frame
 head(JEC) # quick review of the data
 summary(JEC)
 
-# Format Data -----
+# Format Data
+Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
+JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1 
+JEC_corr <- cor(JEC[,-18]) #setup data frame for correlation plot
+JEC$market_revenue <- JEC$price*JEC$quantity 
+JEC$price_variance <- c(NA, diff(JEC$price))
+JEC$revenue_variance <- c(NA, diff(JEC$market_revenue))
+# JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE) # Setup Trigger
 JEC$cartel <- as.factor(JEC$cartel) # set as factor
 levels(JEC$cartel) <- c( "Competition", "Cartel") # rename factor levels
 JEC$ice <- as.factor(JEC$ice)
 levels(JEC$ice)  <- c("Clear Shipping Lanes", "Ice")
-Start_Date <- ymd("1880-1-1") # Set start date, Jan 1st, 1880
-JEC$date <- Start_Date + weeks((JEC$week)-1) # Create date vector, 1 removed as first day is 1880-1-1
-JEC$market_revenue <- JEC$price*JEC$quantity 
-JEC$price_variance <- c(NA, diff(JEC$price))
-# JEC$Trigger <- ifelse(JEC$cartel=="Competition", TRUE, FALSE) # Setup Trigger
+# market revenue when cartel is active and when not
+Cartel_Revenue <- JEC %>% filter(cartel == "Cartel") 
+Competition_Revenue <- JEC %>% filter(cartel == "Competition")
 
 
 # Summary Stats, must contver to data frame for stargazer package
@@ -83,14 +84,6 @@ stargazer(df_JEC,
 Model_Cartel <- lm(log(price) ~ log(quantity) + cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
 summary(Model_Cartel)
 
-# market revenue when cartel is active and when not
-Cartel_Revenue <- JEC %>% filter(cartel == "Cartel") 
-summary(Cartel_Revenue$market_revenue)        
-sd(Cartel_Revenue$market_revenue)        
-
-Competition_Revenue <- JEC %>% filter(cartel == "Competition")
-summary(Competition_Revenue$market_revenue)        
-sd(Competition_Revenue$market_revenue)        
 
 ## Demand Models
 
@@ -147,8 +140,10 @@ plot_OLS_QQ
 
 
 #2SLS Model using cartel status as an instrument for price.
-Demand_2sls <- ivreg(log(quantity) ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 | cartel + week + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
-summary(Demand_2sls, diagnostics=TRUE)
+Demand_2sls <- ivreg(log(quantity) 
+                     ~  log(price) + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12 
+                     | cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, data= JEC) #note log(price)=cartel after | break. Cartel used as an instrument for the effect of supply on price.
+summary(Demand_2sls, vcov = sandwich, diagnostics=TRUE)
 
 Instrument_test <- lm(price ~ cartel + ice + seas1 + seas2 + seas3 + seas4 + seas5 + seas6 + seas7 + seas8 + seas9 + seas10 + seas11 + seas12, JEC)
 summary(Instrument_test)
@@ -163,10 +158,23 @@ stargazer(Demand, Instrument_test, Demand_2sls,
           out="models.html"
 ) #modified regression table output
 
+
+# Further IV tests
+install.packages("ivmodel")
+library(ivmodel)
+Y <- log(JEC$quantity)
+Endogenous <- log(JEC$price)
+Instruments <- as.numeric(JEC$cartel) -1
+Exogenous <- subset(JEC, select = c(ice, seas1, seas2, seas3, seas4, seas5, seas6,  seas7, seas8, seas9, seas10, seas11, seas12))
+Model_ivreg1 <- ivmodel(Y = Y, D = Endogenous, Z = Instruments, X = Exogenous)
+Model_ivreg1
+summary(Model_ivreg1)
+
 # Probit model, Cartel ~ Price Quantity Ice 
 Model4.Probit <- glm(cartel ~ log(quantity) + log(price) + ice , data=JEC, family=binomial(link='probit'))
 summary(Model4.Probit)
 probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
+
 
 
 ########################
@@ -174,7 +182,14 @@ probitmfx(cartel ~ log(quantity) + log(price) + ice , data=JEC)
 ######################
 
 # create a facet wrap for summary data, scatter plots for each variable over time
-# corrplot
+
+
+# corrplot, not overly useful
+corrplot.mixed(JEC_corr,
+         upper = "color",
+         lower = "number",
+         tl.pos = "lt")
+
 
 # Cournot Competition Plot
 Plot_Cournot <- ggplot(JEC, aes(x=date, y=cartel, alpha=cartel, fill=cartel)) +
